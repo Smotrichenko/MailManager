@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Mailings</title>
+</head>
+<body>
+  <nav>
+    <a href="{% url 'mailings:home' %}">Главная</a> |
+    <a href="{% url 'mailings:recipient_list' %}">Получатели</a> |
+    <a href="{% url 'mailings:message_list' %}">Сообщения</a> |
+    <a href="{% url 'mailings:mailing_list' %}">Рассылки</a>
+  </nav>
+  <hr>
+
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</body>
+</html>

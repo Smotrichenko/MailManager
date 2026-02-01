@@ -21,15 +21,15 @@ class HomeView(TemplateView):
         for mailing in Mailings.objects.all():
             mailing.update_status()
 
-        now = timezone.now
+        now = timezone.now()
 
         context["total_mailings"] = Mailings.objects.count()
 
         context["active_mailings"] = Mailings.objects.filter(
-            start_time_lte=now, end_time_dte=now, status=Mailings.STATUS_STARTED
+            start_time__lte=now, end_time__gte=now, status=Mailings.STATUS_STARTED
         ).count()
 
-        context["unique_repicients"] = Recipient.object.count()
+        context["unique_recipients"] = Recipient.objects.count()
 
         return context
 
@@ -42,21 +42,21 @@ class RecipientListView(ListView):
 class RecipientCreateView(CreateView):
     model = Recipient
     form_class = RecipientForm
-    template_name = "mailings/form.html"
-    success_url = reverse_lazy("recipient_list")
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:recipient_list")
 
 
 class RecipientUpdateView(UpdateView):
     model = Recipient
     form_class = RecipientForm
-    template_name = "mailings/form.html"
-    success_url = reverse_lazy("recipient_list")
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:recipient_list")
 
 
 class RecipientDeleteView(DeleteView):
     model = Recipient
     template_name = "mailings/confirm_delete.html"
-    success_url = reverse_lazy("recipient_list")
+    success_url = reverse_lazy("mailings:recipient_list")
 
 
 class MessageListView(ListView):
@@ -68,20 +68,20 @@ class MessageCreateView(CreateView):
     model = Message
     form_class = MessageForm
     template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("message_list")
+    success_url = reverse_lazy("mailings:message_list")
 
 
 class MessageUpdateView(UpdateView):
     model = Message
     form_class = MessageForm
     template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("message_list")
+    success_url = reverse_lazy("mailings:message_list")
 
 
 class MessageDeleteView(DeleteView):
     model = Message
     template_name = "mailings/confirm_delete.html"
-    success_url = reverse_lazy("message_list")
+    success_url = reverse_lazy("mailings:message_list")
 
 
 class MailingsListView(ListView):
@@ -102,21 +102,21 @@ class MailingsDetailView(DeleteView):
 class MailingsCreateView(CreateView):
     model = Mailings
     form_class = MailingsForm
-    template_name = "mailings/form.html"
-    success_url = reverse_lazy("mailing_list")
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:mailing_list")
 
 
 class MailingsUpdateView(UpdateView):
     model = Mailings
     form_class = MailingsForm
-    template_name = "mailings/form.html"
-    success_url = reverse_lazy("mailing_list")
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:mailing_list")
 
 
 class MailingsDeleteView(DeleteView):
     model = Mailings
     template_name = "mailings/confirm_delete.html"
-    success_url = reverse_lazy("mailing_list")
+    success_url = reverse_lazy("mailings:mailing_list")
 
 
 def send_mailing_view(request, pk: int):
@@ -131,12 +131,12 @@ def send_mailing_view(request, pk: int):
         messages.error(
             request, "Отправка запрещена: текущее время не входит в интервал рассылки"
         )
-    return redirect("mailing_detail", pk=pk)
+    return redirect("mailings:mailing_detail", pk=pk)
 
     recipients = mailing.recipients.all()
     if not recipients.exists():
         messages.error(requests, "У рассылки нет получателей")
-    return redirect("mailing_detail", pk=pk)
+    return redirect("mailings:mailing_detail", pk=pk)
 
     for r in recipients:
         try:
@@ -160,4 +160,4 @@ def send_mailing_view(request, pk: int):
             )
 
     messages.success(request, "Рассылка отправлена")
-    return redirect("mailing_detail", pk=pk)
+    return redirect("mailings:mailing_detail", pk=pk)

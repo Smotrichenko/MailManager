@@ -1,0 +1,32 @@
+{% extends "mailings/base.html" %}
+{% block content %}
+<h1>Рассылка #{{ object.pk }}</h1>
+
+<p><b>Статус:</b> {{ object.status }}</p>
+<p><b>Start:</b> {{ object.start_time }}</p>
+<p><b>End:</b> {{ object.end_time }}</p>
+
+<p><b>Сообщение:</b> {{ object.message.subject }}</p>
+
+<p><b>Получатели:</b></p>
+<ul>
+  {% for r in object.recipients.all %}
+    <li>{{ r.full_name }} ({{ r.email }})</li>
+  {% empty %}
+    <li>Нет получателей</li>
+  {% endfor %}
+</ul>
+
+<p>
+  <a href="{% url 'mailings:mailing_send' object.pk %}">Запустить рассылку сейчас</a>
+</p>
+
+<h2>Попытки отправки</h2>
+<ul>
+  {% for a in object.attempts.all %}
+    <li>{{ a.attempt_time }} — {{ a.status }} — {{ a.server_response }}</li>
+  {% empty %}
+    <li>Попыток ещё не было</li>
+  {% endfor %}
+</ul>
+{% endblock %}
