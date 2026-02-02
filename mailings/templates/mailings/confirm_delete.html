@@ -1,0 +1,10 @@
+{% extends "mailings/base.html" %}
+{% block content %}
+<h1>Удаление</h1>
+<form method="post">
+  {% csrf_token %}
+  <p>Точно удалить объект?</p>
+  <button type="submit">Да, удалить</button>
+  <a href="javascript:history.back()">Отмена</a>
+</form>
+{% endblock %}

@@ -50,7 +50,7 @@ class Mailings(models.Model):
     message = models.ForeignKey(
         Message, on_delete=CASCADE, related_name="mailings", verbose_name="Сообщение"
     )
-    repicients = models.ManyToManyField(
+    recipients = models.ManyToManyField(
         Recipient, related_name="mailings", verbose_name="Получатели"
     )
 
