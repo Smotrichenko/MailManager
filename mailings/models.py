@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import CASCADE
@@ -5,18 +6,30 @@ from django.utils import timezone
 
 
 class Recipient(models.Model):
-    """ Модель 'Получатель рассылки' """
+    """Модель 'Получатель рассылки'"""
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=CASCADE,
+        related_name="recipients",
+        verbose_name="Владелец",
+    )
 
     email = models.EmailField(unique=True, verbose_name="Email")
     full_name = models.CharField(max_length=100, verbose_name="ФИО")
     comment = models.TextField(blank=True, verbose_name="Комментарий")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "email"], name="uniq_owner_email")
+        ]
 
     def __str__(self):
         return f"{self.full_name} {self.email}"
 
 
 class Message(models.Model):
-    """ Модель 'Сообщение' """
+    """Модель 'Сообщение'"""
 
     subject = models.CharField(max_length=300, verbose_name="Тема письма")
     body = models.TextField(verbose_name="Тело письма")
@@ -26,7 +39,7 @@ class Message(models.Model):
 
 
 class Mailings(models.Model):
-    """ Модель 'Рассылка' """
+    """Модель 'Рассылка'"""
 
     STATUS_CREATED = "Создана"
     STATUS_STARTED = "Запущена"
@@ -37,6 +50,15 @@ class Mailings(models.Model):
         (STATUS_STARTED, "Запущена"),
         (STATUS_FINISHED, "Завершена"),
     ]
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mailings",
+        verbose_name="Владелец",
+    )
+
+    is_enabled = models.BooleanField(default=True, verbose_name="Рассылка включена")
 
     start_time = models.DateTimeField(verbose_name="Дата и время начала отправки")
     end_time = models.DateTimeField(verbose_name="Дата и время окончания отправки")
@@ -88,7 +110,7 @@ class Mailings(models.Model):
 
 
 class Attempt(models.Model):
-    """ Модель 'Попытка рассылки' """
+    """Модель 'Попытка рассылки'"""
 
     STATUS_SUCCESS = "Успешно"
     STATUS_FAIL = "Не успешно"
