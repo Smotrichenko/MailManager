@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import CASCADE
+from django.db.models import CASCADE, QuerySet
 from django.utils import timezone
 
 
@@ -38,8 +38,25 @@ class Message(models.Model):
         return self.subject
 
 
+class MailingsQuerySet(models.QuerySet):
+    def update_status(self):
+        now = timezone.now()
+
+        self.filter(end_time__lt=now).exclude(status=Mailings.STATUS_FINISHED).update(
+            status=Mailings.STATUS_FINISHED
+        )
+        self.filter(start_time__lte=now, end_time__gte=now).exclude(
+            status=Mailings.STATUS_STARTED
+        ).update(status=Mailings.STATUS_STARTED)
+        self.filter(start_time__gt=now).exclude(status=Mailings.STATUS_CREATED).update(
+            status=Mailings.STATUS_CREATED
+        )
+
+
 class Mailings(models.Model):
     """Модель 'Рассылка'"""
+
+    objects = MailingsQuerySet.as_manager()
 
     STATUS_CREATED = "Создана"
     STATUS_STARTED = "Запущена"
