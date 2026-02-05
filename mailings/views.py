@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -7,6 +8,7 @@ from django.views.generic import (CreateView, DeleteView, ListView,
                                   TemplateView, UpdateView)
 
 from mailings.forms import MailingsForm, MessageForm, RecipientForm
+from mailings.mixins import ManagerReadOnlyForeignMixin, OwnerQuerySetMixin
 from mailings.models import Attempt, Mailings, Message, Recipient
 
 
@@ -34,26 +36,34 @@ class HomeView(TemplateView):
         return context
 
 
-class RecipientListView(ListView):
+class RecipientListView(LoginRequiredMixin, OwnerQuerySetMixin, ListView):
     model = Recipient
     template_name = "mailings/recipient_list.html"
 
 
-class RecipientCreateView(CreateView):
+class RecipientCreateView(LoginRequiredMixin, CreateView):
+    model = Recipient
+    form_class = RecipientForm
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:recipient_list")
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
+
+class RecipientUpdateView(
+    LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, UpdateView
+):
     model = Recipient
     form_class = RecipientForm
     template_name = "mailings/message_form.html"
     success_url = reverse_lazy("mailings:recipient_list")
 
 
-class RecipientUpdateView(UpdateView):
-    model = Recipient
-    form_class = RecipientForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:recipient_list")
-
-
-class RecipientDeleteView(DeleteView):
+class RecipientDeleteView(
+    LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, DeleteView
+):
     model = Recipient
     template_name = "mailings/confirm_delete.html"
     success_url = reverse_lazy("mailings:recipient_list")
@@ -99,21 +109,29 @@ class MailingsDetailView(DeleteView):
         return obj
 
 
-class MailingsCreateView(CreateView):
+class MailingsCreateView(LoginRequiredMixin, CreateView):
+    model = Mailings
+    form_class = MailingsForm
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:mailing_list")
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
+
+class MailingsUpdateView(
+    LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, UpdateView
+):
     model = Mailings
     form_class = MailingsForm
     template_name = "mailings/message_form.html"
     success_url = reverse_lazy("mailings:mailing_list")
 
 
-class MailingsUpdateView(UpdateView):
-    model = Mailings
-    form_class = MailingsForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:mailing_list")
-
-
-class MailingsDeleteView(DeleteView):
+class MailingsDeleteView(
+    LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, DeleteView
+):
     model = Mailings
     template_name = "mailings/confirm_delete.html"
     success_url = reverse_lazy("mailings:mailing_list")
