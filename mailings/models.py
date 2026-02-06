@@ -31,6 +31,13 @@ class Recipient(models.Model):
 class Message(models.Model):
     """Модель 'Сообщение'"""
 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="messages",
+        verbose_name="Владелец",
+    )
+
     subject = models.CharField(max_length=300, verbose_name="Тема письма")
     body = models.TextField(verbose_name="Тело письма")
 
