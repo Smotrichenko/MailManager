@@ -1,8 +1,12 @@
 from config.urls import path
+from mailings.urls import app_name
 from users.views import RegisterView, ConfirmEmailView
 from django.contrib.auth import views as auth_views
 
 from users.views_manager import UserListView, ToggleUserBlockView
+
+
+app_name = "users"
 
 urlpatterns = [
     # Регистрация + подтверждение

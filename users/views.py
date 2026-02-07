@@ -29,18 +29,18 @@ class RegisterView(View):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         confirm_url = request.build_absolute_uri(
-            reverse("confirm_email", kwargs={"uidb64": uid, "token": token})
+            reverse("users:confirm_email", kwargs={"uidb64": uid, "token": token})
         )
 
         send_mail(
-            subject="Подтверждение регистрации.",
-            message=f"Подтвердите email по ссылке: {confirm_url}.",
+            subject="Email confirmation",
+            message=f"Confirm your email:\n {confirm_url}.\n",
             from_email=None,
             recipient_list=[user.email],
         )
 
         messages.success(request, "Письмо подтверждения отправлено на email.")
-        return redirect("login")
+        return redirect("users:login")
 
 
 class ConfirmEmailView(View):
@@ -48,14 +48,18 @@ class ConfirmEmailView(View):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
-        except (ValueError, User.DoesNotExist):
+        except (ValueError, User.DoesNotExist, TypeError, OverflowError):
             user = None
 
-        if user and default_token_generator.check_token(user, token):
-            user.is_active = True
-            user.save(update_fields["is_active"])
-            messages.success(request, "Email подтверждён, войдите в систему.")
-            return redirect("login")
+        if user is None:
+            messages.error(request, "Неверная ссылка подтверждения.")
+            return redirect("users:login")
 
-        messages.error(request, "Ссылка подтверждения недействительна.")
-        return redirect("login")
+        if default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+            messages.success(request, "Email подтверждён. Теперь можно войти.")
+            return redirect("users:login")
+
+        messages.error(request, "Ссылка подтверждения устарела или неверна.")
+        return redirect("users:login")

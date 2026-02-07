@@ -1,15 +1,25 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.mail import send_mail
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import (CreateView, DeleteView, ListView,
-                                  TemplateView, UpdateView)
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
+from mailings.exceptions import (
+    InvalidMailingIntervalError,
+    MailingDisabledError,
+    NoRecipientsError,
+)
 from mailings.forms import MailingsForm, MessageForm, RecipientForm
 from mailings.mixins import ManagerReadOnlyForeignMixin, OwnerQuerySetMixin
-from mailings.models import Attempt, Mailings, Message, Recipient
+from mailings.models import Mailings, Message, Recipient
+from mailings.use_cases import send_mailing
 
 
 class HomeView(TemplateView):
@@ -19,6 +29,8 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        Mailings.objects.update_status()
 
         for mailing in Mailings.objects.all():
             mailing.update_status()
@@ -69,26 +81,30 @@ class RecipientDeleteView(
     success_url = reverse_lazy("mailings:recipient_list")
 
 
-class MessageListView(ListView):
+class MessageListView(LoginRequiredMixin, OwnerQuerySetMixin, ListView):
     model = Message
     template_name = "mailings/message_list.html"
 
 
-class MessageCreateView(CreateView):
+class MessageCreateView(LoginRequiredMixin, CreateView):
+    model = Message
+    form_class = MessageForm
+    template_name = "mailings/message_form.html"
+    success_url = reverse_lazy("mailings:message_list")
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
+
+class MessageUpdateView(LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, UpdateView):
     model = Message
     form_class = MessageForm
     template_name = "mailings/message_form.html"
     success_url = reverse_lazy("mailings:message_list")
 
 
-class MessageUpdateView(UpdateView):
-    model = Message
-    form_class = MessageForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:message_list")
-
-
-class MessageDeleteView(DeleteView):
+class MessageDeleteView(LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, DeleteView):
     model = Message
     template_name = "mailings/confirm_delete.html"
     success_url = reverse_lazy("mailings:message_list")
@@ -140,42 +156,19 @@ class MailingsDeleteView(
 def send_mailing_view(request, pk: int):
     """Ручной запуск рассылки через интерфейс"""
 
-    mailing = Mailings.objects.get(pk=pk)
-    mailing.update_status()
+    mailing = get_object_or_404(Mailings, pk=pk)
 
-    now = timezone.now()
-
-    if not (mailing.start_time <= now <= mailing.end_time):
+    try:
+        send_mailing(mailing_id=mailing.pk)
+    except MailingDisabledError:
+        messages.error(request, "Рассылка отключена менеджером.")
+    except InvalidMailingIntervalError:
         messages.error(
-            request, "Отправка запрещена: текущее время не входит в интервал рассылки"
+            request, "Отправка запрещена: текущее время не входит в интервал рассылки."
         )
-    return redirect("mailings:mailing_detail", pk=pk)
+    except NoRecipientsError:
+        messages.error(request, "У рассылки нет получателей.")
+    else:
+        messages.success(request, "Рассылка отправлена.")
 
-    recipients = mailing.recipients.all()
-    if not recipients.exists():
-        messages.error(requests, "У рассылки нет получателей")
-    return redirect("mailings:mailing_detail", pk=pk)
-
-    for r in recipients:
-        try:
-            send_mail(
-                subject=mailing.message.subject,
-                message=mailing.message.body,
-                from_email=None,
-                recipient_list=[r.email],
-                fail_silently=False,
-            )
-            Attempt.objects.create(
-                mailing=mailing,
-                status=Attempt.STATUS_SUCCESS,
-                server_response="OK",
-            )
-        except Exception as e:
-            Attempt.objects.create(
-                mailing=mailing,
-                status=Attempt.STATUS_FAIL,
-                server_response=str(e),
-            )
-
-    messages.success(request, "Рассылка отправлена")
-    return redirect("mailings:mailing_detail", pk=pk)
+    return redirect("mailing_detail", pk=pk)
