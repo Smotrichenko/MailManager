@@ -3,22 +3,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    ListView,
-    TemplateView,
-    UpdateView,
-)
+from django.views.generic import (CreateView, DeleteView, ListView,
+                                  TemplateView, UpdateView)
 
-from mailings.exceptions import (
-    InvalidMailingIntervalError,
-    MailingDisabledError,
-    NoRecipientsError,
-)
-from mailings.forms import MailingsForm, MessageForm, RecipientForm
+from mailings.exceptions import (InvalidMailingIntervalError,
+                                 MailingDisabledError, NoRecipientsError)
+from mailings.forms import MailingsForm
 from mailings.mixins import ManagerReadOnlyForeignMixin, OwnerQuerySetMixin
-from mailings.models import Mailings, Message, Recipient
+from mailings.models import Mailings, Recipient
 from mailings.use_cases import send_mailing
 
 
@@ -46,68 +38,6 @@ class HomeView(TemplateView):
         context["unique_recipients"] = Recipient.objects.count()
 
         return context
-
-
-class RecipientListView(LoginRequiredMixin, OwnerQuerySetMixin, ListView):
-    model = Recipient
-    template_name = "mailings/recipient_list.html"
-
-
-class RecipientCreateView(LoginRequiredMixin, CreateView):
-    model = Recipient
-    form_class = RecipientForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:recipient_list")
-
-    def form_valid(self, form):
-        form.instance.owner = self.request.user
-        return super().form_valid(form)
-
-
-class RecipientUpdateView(
-    LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, UpdateView
-):
-    model = Recipient
-    form_class = RecipientForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:recipient_list")
-
-
-class RecipientDeleteView(
-    LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, DeleteView
-):
-    model = Recipient
-    template_name = "mailings/confirm_delete.html"
-    success_url = reverse_lazy("mailings:recipient_list")
-
-
-class MessageListView(LoginRequiredMixin, OwnerQuerySetMixin, ListView):
-    model = Message
-    template_name = "mailings/message_list.html"
-
-
-class MessageCreateView(LoginRequiredMixin, CreateView):
-    model = Message
-    form_class = MessageForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:message_list")
-
-    def form_valid(self, form):
-        form.instance.owner = self.request.user
-        return super().form_valid(form)
-
-
-class MessageUpdateView(LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, UpdateView):
-    model = Message
-    form_class = MessageForm
-    template_name = "mailings/message_form.html"
-    success_url = reverse_lazy("mailings:message_list")
-
-
-class MessageDeleteView(LoginRequiredMixin, OwnerQuerySetMixin, ManagerReadOnlyForeignMixin, DeleteView):
-    model = Message
-    template_name = "mailings/confirm_delete.html"
-    success_url = reverse_lazy("mailings:message_list")
 
 
 class MailingsListView(ListView):

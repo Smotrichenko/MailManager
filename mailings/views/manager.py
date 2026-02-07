@@ -3,9 +3,8 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.views import View
 
+from mailings.models import Mailings
 from users.permissions import is_manager
-
-from .models import Mailings
 
 
 class ToggleMailingEnabledView(LoginRequiredMixin, View):
