@@ -1,0 +1,15 @@
+{% extends "mailings/base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <h1>Статистика</h1>
+
+    <div class="card p-3 mb-3">
+      <p><strong>Успешных попыток:</strong> {{ success_attempts }}</p>
+      <p><strong>Неуспешных попыток:</strong> {{ fail_attempts }}</p>
+      <p><strong>Отправленных сообщений:</strong> {{ sent_messages }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
